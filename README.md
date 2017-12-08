@@ -1,4 +1,4 @@
-# Programmable 10-button remote control
+/# Programmable 10-button remote control
 ## Hardware
 - Arduino Nano
 - IR LED
@@ -14,3 +14,6 @@
 - Use switch for the code recording mode
 - Read and store in EEPROM up to 10 commands from over remote
 - Play sounds on each operation
+
+## More information
+[PaperTecladoAnalógico. Several push buttons with a single analog input.](http://txapuzas.blogspot.ru/2010/07/papertecladoanalogico-varios-pulsadores.html) 
