@@ -1,4 +1,4 @@
-/# Programmable 10-button remote control
+# Programmable 10-button remote control
 ## Hardware
 - Arduino Nano
 - IR LED
