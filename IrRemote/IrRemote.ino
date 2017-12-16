@@ -32,6 +32,8 @@
 #include <EEPROM.h>
 #include "pitches.h"
 
+//#define SERIALOUT Serial // Comment this line to disable Serial output
+
 #define SOUND_PIN  4 // Пин пищалки
 #define RECORD_PIN 12 // Пин для записи кнопок
 
@@ -97,12 +99,14 @@ int LastPulsador = 99;
 
 void setup()
 {
-	Serial.begin(9600);
 	pinMode(LED_BUILTIN, OUTPUT);
 	pinMode(RECORD_PIN, INPUT_PULLUP);
 	EEPROM.get(0, storedCodes);
-	Serial.print("Send pin: ");
-	Serial.println(SEND_PIN);
+#ifdef SERIALOUT
+	SERIALOUT.begin(9600);
+	SERIALOUT.print("Send pin: ");
+	SERIALOUT.println(SEND_PIN);
+#endif // #ifdef SERIALOUT
 }
 
 /* Devuelve el valor de la tecla pulsada
@@ -155,7 +159,9 @@ int LeerTeclado() {
 void storeCode(decode_results *results) {
 	codeType = results->decode_type;
 	if (codeType == UNKNOWN) {
-		Serial.println("Received unknown code, saving as raw");
+#ifdef SERIALOUT
+		SERIALOUT.println("Received unknown code, saving as raw");
+#endif // #ifdef SERIALOUT
 		codeLen = results->rawlen - 1;
 		// To store raw codes:
 		// Drop first value (gap)
@@ -165,47 +171,75 @@ void storeCode(decode_results *results) {
 			if (i % 2) {
 				// Mark
 				rawCodes[i - 1] = results->rawbuf[i] * USECPERTICK - MARK_EXCESS;
-				Serial.print(" m");
+#ifdef SERIALOUT
+				SERIALOUT.print(" m");
+#endif // #ifdef SERIALOUT
 			}
 			else {
 				// Space
 				rawCodes[i - 1] = results->rawbuf[i] * USECPERTICK + MARK_EXCESS;
-				Serial.print(" s");
+#ifdef SERIALOUT
+				SERIALOUT.print(" s");
+#endif // #ifdef SERIALOUT
 			}
-			Serial.print(rawCodes[i - 1], DEC);
+#ifdef SERIALOUT
+			SERIALOUT.print(rawCodes[i - 1], DEC);
+#endif // #ifdef SERIALOUT
 		}
-		Serial.println("");
+#ifdef SERIALOUT
+		SERIALOUT.println("");
+#endif // #ifdef SERIALOUT
 	}
 	else {
 		codeValue = results->value;
 		if (codeType == NEC) {
-			Serial.print("Received NEC: ");
+#ifdef SERIALOUT
+			SERIALOUT.print("Received NEC: ");
+#endif // #ifdef SERIALOUT
 			if (codeValue == REPEAT) {
 				// Don't record a NEC repeat value as that's useless.
-				Serial.println("repeat; ignoring.");
+#ifdef SERIALOUT
+				SERIALOUT.println("repeat; ignoring.");
+#endif // #ifdef SERIALOUT
+				return;
 			}
 		}
 		else if (codeType == SONY) {
-			Serial.print("Received SONY: ");
+#ifdef SERIALOUT
+			SERIALOUT.print("Received SONY: ");
+#endif // #ifdef SERIALOUT
 		}
 		else if (codeType == PANASONIC) {
-			Serial.print("Received PANASONIC: ");
+#ifdef SERIALOUT
+			SERIALOUT.print("Received PANASONIC: ");
+#endif // #ifdef SERIALOUT
 		}
 		else if (codeType == JVC) {
-			Serial.print("Received JVC: ");
+#ifdef SERIALOUT
+			SERIALOUT.print("Received JVC: ");
+#endif // #ifdef SERIALOUT
 		}
 		else if (codeType == RC5) {
-			Serial.print("Received RC5: ");
+#ifdef SERIALOUT
+			SERIALOUT.print("Received RC5: ");
+#endif // #ifdef SERIALOUT
 		}
 		else if (codeType == RC6) {
-			Serial.print("Received RC6: ");
+#ifdef SERIALOUT
+			SERIALOUT.print("Received RC6: ");
+#endif // #ifdef SERIALOUT
 		}
 		else {
-			Serial.print("Unexpected codeType ");
-			Serial.print(codeType, DEC);
-			Serial.println("");
+#ifdef SERIALOUT
+			SERIALOUT.print("Unexpected codeType ");
+			SERIALOUT.print(codeType, DEC);
+			SERIALOUT.println("");
+#endif // #ifdef SERIALOUT
+			return;
 		}
-		Serial.println(codeValue, HEX);
+#ifdef SERIALOUT
+		SERIALOUT.println(codeValue, HEX);
+#endif // #ifdef SERIALOUT
 		codeLen = results->bits;
 	}
 }
@@ -214,28 +248,38 @@ void sendCode(int repeat) {
 	if (codeType == NEC) {
 		if (repeat) {
 			irsend.sendNEC(REPEAT, codeLen);
-			Serial.println("Sent NEC repeat");
+#ifdef SERIALOUT
+			SERIALOUT.println("Sent NEC repeat");
+#endif // #ifdef SERIALOUT
 		}
 		else {
 			irsend.sendNEC(codeValue, codeLen);
-			Serial.print("Sent NEC ");
-			Serial.println(codeValue, HEX);
+#ifdef SERIALOUT
+			SERIALOUT.print("Sent NEC ");
+			SERIALOUT.println(codeValue, HEX);
+#endif // #ifdef SERIALOUT
 		}
 	}
 	else if (codeType == SONY) {
 		irsend.sendSony(codeValue, codeLen);
-		Serial.print("Sent Sony ");
-		Serial.println(codeValue, HEX);
+#ifdef SERIALOUT
+		SERIALOUT.print("Sent Sony ");
+		SERIALOUT.println(codeValue, HEX);
+#endif // #ifdef SERIALOUT
 	}
 	else if (codeType == PANASONIC) {
 		irsend.sendPanasonic(codeValue, codeLen);
-		Serial.print("Sent Panasonic");
-		Serial.println(codeValue, HEX);
+#ifdef SERIALOUT
+		SERIALOUT.print("Sent Panasonic");
+		SERIALOUT.println(codeValue, HEX);
+#endif // #ifdef SERIALOUT
 	}
 	else if (codeType == JVC) {
 		irsend.sendJVC(codeValue, codeLen, false);
-		Serial.print("Sent JVC");
-		Serial.println(codeValue, HEX);
+#ifdef SERIALOUT
+		SERIALOUT.print("Sent JVC");
+		SERIALOUT.println(codeValue, HEX);
+#endif // #ifdef SERIALOUT
 	}
 	else if (codeType == RC5 || codeType == RC6) {
 		if (!repeat) {
@@ -246,20 +290,26 @@ void sendCode(int repeat) {
 		codeValue = codeValue & ~(1 << (codeLen - 1));
 		codeValue = codeValue | (toggle << (codeLen - 1));
 		if (codeType == RC5) {
-			Serial.print("Sent RC5 ");
-			Serial.println(codeValue, HEX);
 			irsend.sendRC5(codeValue, codeLen);
+#ifdef SERIALOUT
+			SERIALOUT.print("Sent RC5 ");
+			SERIALOUT.println(codeValue, HEX);
+#endif // #ifdef SERIALOUT
 		}
 		else {
 			irsend.sendRC6(codeValue, codeLen);
-			Serial.print("Sent RC6 ");
-			Serial.println(codeValue, HEX);
+#ifdef SERIALOUT
+			SERIALOUT.print("Sent RC6 ");
+			SERIALOUT.println(codeValue, HEX);
+#endif // #ifdef SERIALOUT
 		}
 	}
 	else if (codeType == UNKNOWN /* i.e. raw */) {
 		// Assume 38 KHz
 		irsend.sendRaw(rawCodes, codeLen, 38);
-		Serial.println("Sent raw");
+#ifdef SERIALOUT
+		SERIALOUT.println("Sent raw");
+#endif // #ifdef SERIALOUT
 	}
 }
 
@@ -327,18 +377,22 @@ void loop() {
 
 		// Si se ha pulsado una tecla ...
 		if (LastPulsador != 99 && Pulsador == 99) {
-			Serial.print("Released ");
-			Serial.print(LastPulsador);
-			Serial.println(", start the reciever");
 			PlayNote(LastPulsador - 1);
 			irrecv.enableIRIn(); // Start the receiver
 			recordButton = LastPulsador;
+#ifdef SERIALOUT
+			SERIALOUT.print("Released ");
+			SERIALOUT.print(LastPulsador);
+			SERIALOUT.println(", start the reciever");
+#endif // #ifdef SERIALOUT
 		}
 		if (LastPulsador == 99 && Pulsador != 99) {
-			Serial.print("Pressed ");
-			Serial.print(Pulsador);
-			Serial.println(", wait for release");
 			recordButton = 99;
+#ifdef SERIALOUT
+			SERIALOUT.print("Pressed ");
+			SERIALOUT.print(Pulsador);
+			SERIALOUT.println(", wait for release");
+#endif // #ifdef SERIALOUT
 		}
 		if (irrecv.decode(&results)) {
 			irrecv.resume(); // resume receiver
@@ -351,10 +405,12 @@ void loop() {
 					code->codeLen = codeLen;
 					EEPROM.put(0, storedCodes);
 					PlayMelody();
-					Serial.print("Button ");
-					Serial.print(recordButton);
-					Serial.println(" stored");
 					recordButton = 99;
+#ifdef SERIALOUT
+					SERIALOUT.print("Button ");
+					SERIALOUT.print(recordButton);
+					SERIALOUT.println(" stored");
+#endif // #ifdef SERIALOUT
 				}
 				else {
 					Beep();
@@ -367,13 +423,12 @@ void loop() {
 		digitalWrite(LED_BUILTIN, LOW);
 
 		if (LastPulsador != 99 && Pulsador == 99) {
-			Serial.print("Released ");
-			Serial.println(LastPulsador);
+#ifdef SERIALOUT
+			SERIALOUT.print("Released ");
+			SERIALOUT.println(LastPulsador);
+#endif // #ifdef SERIALOUT
 		}
 		else if (LastPulsador == 99 && Pulsador != 99) {
-			Serial.print("Pressed ");
-			Serial.print(Pulsador);
-			Serial.println(", sending");
 			ir_code code = storedCodes[Pulsador - 1];
 			codeType = code.codeType;
 			codeValue = code.codeValue;
@@ -385,11 +440,13 @@ void loop() {
 			else {
 				Beep();
 			}
+#ifdef SERIALOUT
+			SERIALOUT.print("Pressed ");
+			SERIALOUT.print(Pulsador);
+			SERIALOUT.println(", sending");
+#endif // #ifdef SERIALOUT
 		}
 		else if (Pulsador != 99) {
-			Serial.print("Pressed ");
-			Serial.print(Pulsador);
-			Serial.println(", repeating");
 			ir_code code = storedCodes[Pulsador - 1];
 			codeType = code.codeType;
 			codeValue = code.codeValue;
@@ -397,6 +454,11 @@ void loop() {
 			if (codeType == NEC || codeType == SONY || codeType == PANASONIC || codeType == JVC || codeType == RC5 || codeType == RC6) {
 				sendCode(1);
 			}
+#ifdef SERIALOUT
+			SERIALOUT.print("Pressed ");
+			SERIALOUT.print(Pulsador);
+			SERIALOUT.println(", repeating");
+#endif // #ifdef SERIALOUT
 		}
 	}
 	LastPulsador = Pulsador;
